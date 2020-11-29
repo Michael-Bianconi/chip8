@@ -1,0 +1,10 @@
+define x V0
+define five 5
+define three 3         ; define macros
+
+
+doMath: ld x, 0        ; in-line label
+        add x, five
+        add x, three
+        jp exit
+exit:                  ; stand-alone label

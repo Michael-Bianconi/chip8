@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from assembler.assembler import assemble
+from assembler import assemble
 
 class AssemblerTest(TestCase):
 
@@ -25,13 +25,13 @@ class AssemblerTest(TestCase):
         self.assertNotAssembles("ADD I, V-4")
 
     def test_assemble_add_v_b(self):
-        self.assertAssembles(0x7405, "ADD V4, 5")
-        self.assertAssembles(0x7405, "adD V4, 05")
-        self.assertAssembles(0x7405, "ADD    V4, 5")
-        self.assertAssembles(0x7405, "ADD     V4, 005")
-        self.assertAssembles(0x7405, "ADD v4, 5")
+        self.assertAssembles(0x7405, "ADD V4, 0x5")
+        self.assertAssembles(0x7405, "adD V4, #05")
+        self.assertAssembles(0x7405, "ADD    V4, 0x5")
+        self.assertAssembles(0x7405, "ADD     V4, 0x005")
+        self.assertAssembles(0x7405, "ADD v4, #5")
         self.assertAssembles(0x70f6, "ADD V0, 0xf6")
-        self.assertAssembles(0x701a, "ADD V0, 1a")
+        self.assertAssembles(0x701a, "ADD V0, #1a")
         self.assertNotAssembles("add V4")
         self.assertNotAssembles("ADD Vg, 0xf5")
         self.assertNotAssembles("ADD Va, -0xf")
@@ -55,6 +55,6 @@ class AssemblerTest(TestCase):
         self.assertNotAssembles("ADD 4, V6")
 
     def test_assemble_drw(self):
-        self.assertAssembles(0xD123, "DRW V1, V2, 3")
+        self.assertAssembles(0xD123, "DRW V1, V2, #3")
         self.assertAssembles(0xD00F, "drw  v0 ,  v0 ,  0x00000F")
         self.assertNotAssembles("drw v5, 5, 0x0F")

@@ -1,4 +1,5 @@
-import enum, re
+import enum, re, sys
+from typing import TextIO, List, IO
 
 
 class ArgType(enum.Enum):
@@ -11,9 +12,9 @@ class ArgType(enum.Enum):
     I = re.compile('^(I)$', re.IGNORECASE)
     K = re.compile('^(K)$', re.IGNORECASE)
     AI = re.compile('^\\[I]$', re.IGNORECASE)
-    NIBBLE = re.compile('^(?:0x)?0*([0-9a-f])$', re.IGNORECASE)
-    BYTE = re.compile('^(?:0x)?0*([0-9a-f]|[0-9a-f]{2})$', re.IGNORECASE)
-    ADDR = re.compile('^(?:0x)?0*([0-9a-f]|[0-9a-f]{2}|[0-9a-f]{3})$', re.IGNORECASE)
+    NIBBLE = re.compile('^(?:0x|#)0*([0-9a-f])$', re.IGNORECASE)
+    BYTE = re.compile('^(?:0x|#)0*([0-9a-f]|[0-9a-f]{2})$', re.IGNORECASE)
+    ADDR = re.compile('^(?:0x|#)0*([0-9a-f]|[0-9a-f]{2}|[0-9a-f]{3})$', re.IGNORECASE)
 
 
 def get_formats(opcode: str) -> dict:
@@ -113,9 +114,8 @@ def get_formats(opcode: str) -> dict:
     return formats.get(opcode.upper().strip(), None)
 
 
-def parse(line: str, *expected_args: ArgType) -> list:
+def parseMnemonic(line: str, *expected_args: ArgType) -> list:
     retval = []
-    line = line.split('#',1)[0]
     opcode, args = line.strip().split(' ', 1)
     args = args.split(',')
 
@@ -139,11 +139,94 @@ def parse(line: str, *expected_args: ArgType) -> list:
     return retval
 
 
+def split_label(source: str) -> tuple:
+    label, colon, instruction = source.partition(':')
+    if label and colon:
+        if label[0].isalpha() and label.isalnum():
+            return label.strip(), instruction.strip()
+        else:
+            raise ValueError('Invalid label: ' + source)
+    else:
+        return None, source
+
+
+def get_define(source: str) -> tuple:
+    m = re.match('^define ([a-zA-Z][a-zA-Z0-9_]*)\s+([a-zA-Z0-9_]*)$', source)
+    if m is None:
+        return None
+    else:
+        return m.group(1), m.group(2)
+
+
+def preprocess(source: List[str]) -> list:
+    program_counter = 0
+    labels = {}
+    destination = []
+    for line_num, line in enumerate(source):
+        line = line.split(';', 1)[0].strip()
+        label, line = split_label(line)
+        define = get_define(line)
+        if label is not None:
+            labels[label] = program_counter
+        if define is not None:
+            labels[define[0]] = define[1]
+            line = ''
+        if line:
+            program_counter += 1
+            destination.append(line)
+    for line_num, line in enumerate(destination):
+        split = line.split(maxsplit=1)
+        mnemonic, operands = split[0], split[1:]
+        if operands:
+            operands = re.split(',\s*', operands[0])
+            for op_num, op in enumerate(operands):
+                operands[op_num] = labels.get(op, op)
+            destination[line_num] = mnemonic + ' ' + ', '.join(operands)
+        else:
+            destination[line_num] = mnemonic
+    return destination
+
+
 def assemble(line: str) -> int:
+    """
+    Assembles a *processed* line of Chip-8 assembly. Processed
+    lines should not include any pseudo-instructions, labels,
+    or defines.
+    :param line:
+    :return:
+    """
     opcode = line.split(' ', 1)[0]
     formats = get_formats(opcode)
     for format in formats:
-        args = parse(line, *format['format'])
+        args = parseMnemonic(line, *format['format'])
         if args is not None:
             return format['assemble'](args)
     return None
+
+
+def assemble_file(source: TextIO, dest: IO[bytes]) -> None:
+    lines = preprocess(source.readlines())
+    data = []
+
+    for line in lines:
+        opcode = assemble(line)
+        data.append((opcode & 0xFF00) >> 8)
+        data.append(opcode & 0xFF)
+
+    dest.write(bytearray(data))
+
+
+def main(argv: list) -> None:
+    print(argv)
+    if len(argv) != 3:
+        print('Usage: $ python3 assembler.py <source> <destination>')
+        sys.exit(0)
+    else:
+        _, source_path, dest_path = argv
+        with open(source_path, 'r') as source:
+            with open(dest_path, 'wb+') as dest:
+                assemble_file(source, dest)
+
+
+if __name__ == '__main__':
+    main(sys.argv)
