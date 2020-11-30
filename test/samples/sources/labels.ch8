@@ -1,0 +1,10 @@
+ld v0, 0x0
+ld v1, 0x1
+start:
+    add v0, v1
+    se v0, 0x7
+    jp start
+    jp end
+end:
+    ld v0, 0x0
+    ld v1, 0x0

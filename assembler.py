@@ -11,7 +11,7 @@ class ArgType(enum.Enum):
     ST = re.compile('^(ST)$', re.IGNORECASE)
     I = re.compile('^(I)$', re.IGNORECASE)
     K = re.compile('^(K)$', re.IGNORECASE)
-    AI = re.compile('^\\[I]$', re.IGNORECASE)
+    AI = re.compile('^(\\[I])$', re.IGNORECASE)
     NIBBLE = re.compile('^(?:0x|#)0*([0-9a-f])$', re.IGNORECASE)
     BYTE = re.compile('^(?:0x|#)0*([0-9a-f]|[0-9a-f]{2})$', re.IGNORECASE)
     ADDR = re.compile('^(?:0x|#)0*([0-9a-f]|[0-9a-f]{2}|[0-9a-f]{3})$', re.IGNORECASE)
@@ -32,6 +32,9 @@ def get_formats(opcode: str) -> dict:
         'CALL': (
             {'format':[ArgType.ADDR],
              'assemble': lambda args: 0x2000 | args[1]},),
+        'CLS': (
+            {'format': [],
+             'assemble': lambda args: 0x00E0},),
         'DRW': (
             {'format': [ArgType.V, ArgType.V, ArgType.NIBBLE],
              'assemble': lambda args: 0xD000 | (args[1] << 8) | (args[2] << 4) | args[3]},),
@@ -92,7 +95,7 @@ def get_formats(opcode: str) -> dict:
              'assemble': lambda args: 0xE0A1 | (args[1] << 8)},),
         'SKP': (
             {'format': [ArgType.V],
-             'assemble': lambda args: 0x509E | (args[1] << 8)},),
+             'assemble': lambda args: 0xE09E | (args[1] << 8)},),
         'SNE': (
             {'format': [ArgType.V, ArgType.BYTE],
              'assemble': lambda args: 0x4000 | (args[1] << 8) | args[2]},
@@ -111,13 +114,16 @@ def get_formats(opcode: str) -> dict:
             {'format': [ArgType.V, ArgType.V],
              'assemble': lambda args: 0x8003 | (args[1] << 8) | (args[2] << 4)},),
     }
-    return formats.get(opcode.upper().strip(), None)
+    if opcode.upper().strip() not in formats:
+        raise ValueError('Unrecognized opcode: ' + opcode)
+    else:
+        return formats[opcode.upper().strip()]
 
 
 def parseMnemonic(line: str, *expected_args: ArgType) -> list:
     retval = []
-    opcode, args = line.strip().split(' ', 1)
-    args = args.split(',')
+    opcode, _, args = line.partition(' ')
+    args = [a for a in args.split(',') if a]
 
     if len(args) != len(expected_args):
         retval = None
@@ -167,7 +173,7 @@ def preprocess(source: List[str]) -> list:
         label, line = split_label(line)
         define = get_define(line)
         if label is not None:
-            labels[label] = program_counter
+            labels[label] = f'0x{program_counter:03}'
         if define is not None:
             labels[define[0]] = define[1]
             line = ''
@@ -210,6 +216,8 @@ def assemble_file(source: TextIO, dest: IO[bytes]) -> None:
 
     for line in lines:
         opcode = assemble(line)
+        if opcode is None:
+            raise ValueError('Unrecognized line:' + line)
         data.append((opcode & 0xFF00) >> 8)
         data.append(opcode & 0xFF)
 

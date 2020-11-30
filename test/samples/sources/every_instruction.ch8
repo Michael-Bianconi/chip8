@@ -1,0 +1,35 @@
+cls
+ret
+sys 0xfff
+jp 0xfff
+call 0xfff
+se vf, 0xff
+sne vf, 0xff
+se vf, vf
+ld vf, 0xff
+add vf, 0xff
+ld vf, vf
+or vf, vf
+and vf, vf
+xor vf, vf
+add vf, vf
+sub vf, vf
+shr vf, vf
+subn vf, vf
+shl vf, vf
+sne vf, vf
+ld i, 0xfff
+jp v0, 0xfff
+rnd vf, 0xff
+drw vf, vf, 0xf
+skp vf
+sknp vf
+ld vf, dt
+ld vf, k
+ld dt, vf
+ld st, vf
+add i, vf
+ld f, vf
+ld b, vf
+ld [i], vf
+ld vf, [i]

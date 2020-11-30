@@ -1,0 +1,6 @@
+add x, y
+
+define x v0
+define y v1
+
+add x, y

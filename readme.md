@@ -12,7 +12,9 @@ python3 assembler.py <source file> <destination file>
 * Comments start with `;`
 * Labels start with a letter, are alphanumeric, and end with `:`
 * Define-macros start with a letter and are alphanumeric
-* There is nothing stopping you from macro-ing a keyword (e.g. `I`)
+* There is nothing stopping you from macro-ing a keyword (e.g. `I`), but things will break
+* You may declare labels and define-macros before or after using them
+* You may declare labels and define-macros multiple times. Only the bottom-most declarations will be used
 
 ## Disassembler
 
