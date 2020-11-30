@@ -1,5 +1,6 @@
 import string
 import sys
+from typing import IO
 
 _patterns = {
     '00E0': lambda op: 'CLS',
@@ -46,7 +47,7 @@ def mnemonic(opcode: str):
             return value(opcode)
 
 
-def disassemble(source):
+def disassemble(source: IO[bytes]):
     opcode = source.read(2)
     if opcode:
         yield mnemonic(opcode.hex().upper())
