@@ -1,0 +1,4 @@
+ld   I,   0x33     ; Load the address for 'A' into I
+ld   v0,  0xA      ; Load X coordinate into v0
+ld   v1,  0xF      ; Load Y coordinate into v1
+drw  v0,  v1,  0x5 ; Draw 'A' onto screen at (v0, v1)

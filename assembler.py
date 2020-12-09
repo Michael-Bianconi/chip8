@@ -157,7 +157,7 @@ def split_label(source: str) -> tuple:
 
 
 def get_define(source: str) -> tuple:
-    m = re.match('^define ([a-zA-Z][a-zA-Z0-9_]*)\s+([a-zA-Z0-9_]*)$', source)
+    m = re.match('^define\s+([a-zA-Z][a-zA-Z0-9_]*)\s+([a-zA-Z0-9_]*)$', source)
     if m is None:
         return None
     else:
@@ -178,7 +178,7 @@ def preprocess(source: List[str]) -> list:
             labels[define[0]] = define[1]
             line = ''
         if line:
-            program_counter += 1
+            program_counter += 2
             destination.append(line)
     for line_num, line in enumerate(destination):
         split = line.split(maxsplit=1)
@@ -214,8 +214,12 @@ def assemble_file(source: TextIO, dest: IO[bytes]) -> None:
     lines = preprocess(source.readlines())
     data = []
 
-    for line in lines:
-        opcode = assemble(line)
+    for line_num, line in enumerate(lines):
+        opcode = None
+        try:
+            opcode = assemble(line)
+        except ValueError as e:
+            print(f'Line {line_num}: {e}')
         if opcode is None:
             raise ValueError('Unrecognized line:' + line)
         data.append((opcode & 0xFF00) >> 8)
@@ -225,7 +229,6 @@ def assemble_file(source: TextIO, dest: IO[bytes]) -> None:
 
 
 def main(argv: list) -> None:
-    print(argv)
     if len(argv) != 3:
         print('Usage: $ python3 assembler.py <source> <destination>')
         sys.exit(0)
