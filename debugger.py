@@ -115,7 +115,7 @@ def foo():
     info_grid.set_register('PC', emulator.program_counter)
     opcode = int.from_bytes(emulator.memory[emulator.program_counter:emulator.program_counter + 2], 'big')
     info_grid.set_op(mnemonic(opcode))
-    window.after(60, foo)
+    window.after(1, foo)
 
 foo()
 while True:

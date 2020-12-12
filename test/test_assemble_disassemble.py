@@ -2,7 +2,7 @@ import filecmp
 from unittest import TestCase
 import tempfile, os
 
-from assembler import assemble_file
+from assembler.assembler import Assembler
 from disassembler import disassemble
 
 
@@ -36,7 +36,7 @@ class AssembleDisassembleTest(TestCase):
         # Assemble
         with open(src_path, 'r') as src:
             with open(dest1_path, 'wb') as dest:
-                assemble_file(src, dest)
+                Assembler.assemble_file(src, dest)
 
         # Disassemble
         with open(dest1_path, 'rb') as src:
@@ -46,7 +46,7 @@ class AssembleDisassembleTest(TestCase):
         # Assemble again
         with open(src2_path, 'r') as src:
             with open(dest2_path, 'wb') as dest:
-                assemble_file(src, dest)
+                Assembler.assemble_file(src, dest)
 
         # Sanity check
         self.assertNotEqual(0, os.stat(dest1_path).st_size)

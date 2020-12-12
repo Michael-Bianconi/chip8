@@ -1,8 +1,17 @@
-from typing import IO
+from io import BytesIO
+from typing import IO, Optional
 import random
 
 
 class Emulator:
+
+    MOD_4_BIT = 0x10
+    MOD_8_BIT = 0x100
+    PROGRAM_START = 0x200
+    STACK_SIZE = 16
+    MEMORY_SIZE = 0xFFF
+    V_REGISTER_COUNT = 16
+    FONT_SIZE = 5
 
     FONTS = [
         [0xF0, 0x90, 0x90, 0x90, 0xF0],  # 0 @ 0x00 - 0x04
@@ -61,20 +70,25 @@ class Emulator:
         (0xF065, 0xF0FF): lambda e, op: e.ld_v_i((op & 0x0F00) >> 8),
     }
 
-    def __init__(self, source: IO[bytes]):
-        self.v_registers = [0] * 16
+    def __init__(self, source: Optional[BytesIO]):
+        self.v_registers = [0] * Emulator.V_REGISTER_COUNT
         self.i_register = 0
         self.dt_register = 0
         self.st_register = 0
         self.stack_pointer = 0
-        self.memory = bytearray(0xFFF)
-        self.stack = [0] * 16
-        self.program_counter = 0x200
+        self.memory = bytearray(Emulator.MEMORY_SIZE)
+        self.stack = [0] * Emulator.STACK_SIZE
+        self.program_counter = Emulator.PROGRAM_START
         self.display = Emulator.empty_display()
         self.pixels_to_update = []
+        self.wait_for_keypress = False
+        self.store_keypress_in_v = None
+        self.keys_pressed = []
 
         Emulator._init_fonts(self.memory)
-        Emulator._read_source(source, self.memory, self.program_counter)
+
+        if source is not None:
+            Emulator._read_source(source, self.memory, self.program_counter)
 
     def next(self) -> bool:
         self.pixels_to_update = []
@@ -89,45 +103,55 @@ class Emulator:
         for (pattern, mask), instruction in Emulator.INSTRUCTION_TABLE.items():
             if not (opcode ^ pattern) & mask:
                 jump = instruction(self, opcode)
+                # Jumps are handled by their respective instructions
                 if not jump:
-                    self.program_counter += 2
+                    self.increment_program_counter()
 
     def cls(self) -> None:
         self.display = Emulator.empty_display()
 
-    def ret(self) -> bool:
-        self.program_counter = 0x200 + self.stack[self.stack_pointer]
-        self.stack_pointer -= 1  # TODO UNDERFLOW
+    def ret(self) -> bool:  # TODO unit test
+        self.program_counter = self.stack[self.stack_pointer]
+        self.stack_pointer = (self.stack_pointer - 1) % Emulator.MOD_4_BIT
         return True
 
     def sys_address(self, address: int) -> None:
+        """Unused"""
         pass
 
-    def jp_address(self, opcode: int) -> bool:
-        self.program_counter = 0x200 + opcode & 0x0FFF
+    def jp_address(self, address: int) -> bool:
+        """
+        Moves the program counter to the specified address. Note:
+        Programs start at 0x200. However, there is nothing stopping
+        programs from jumping to <0x200 addresses. Have fun executing
+        font data.
+        :param address: A value in the range [0, 0xFFF]
+        :return: True, since we are jumping
+        """
+        self.program_counter = address
         return True
 
-    def call_address(self, address: int) -> bool:
-        self.stack_pointer += 1  # TODO OVERFLOW
+    def call_address(self, address: int) -> bool:  # TODO unit test
+        self.stack_pointer = (self.stack_pointer + 1) % Emulator.MOD_4_BIT
         self.stack[self.stack_pointer] = self.program_counter
-        self.program_counter = 0x200 + address
+        self.program_counter = address
         return True
 
-    def se_v_byte(self, vx: int, byte: int) -> bool:
+    def se_v_byte(self, vx: int, byte: int) -> bool:  # TODO unit test
         if self.v_registers[vx] == byte:
-            self.program_counter += 4
+            self.increment_program_counter(2)
             return True
         return False
 
-    def sne_v_byte(self, vx: int, byte: int) -> bool:
+    def sne_v_byte(self, vx: int, byte: int) -> bool:  # TODO unit test
         if self.v_registers[vx] != byte:
-            self.program_counter += 4
+            self.increment_program_counter(2)
             return True
         return False
 
-    def se_v_v(self, vx: int, vy: int) -> bool:
+    def se_v_v(self, vx: int, vy: int) -> bool:  # TODO unit test
         if self.v_registers[vx] == self.v_registers[vy]:
-            self.program_counter += 4
+            self.increment_program_counter(2)
             return True
         return False
 
@@ -135,7 +159,13 @@ class Emulator:
         self.v_registers[vx] = byte
 
     def add_v_byte(self, vx: int, byte: int) -> None:
-        self.v_registers[vx] += byte  # TODO OVERFLOW
+        """
+        Add Vx and a byte together and store the result in Vx. Since
+        registers are only 8-bit, mod the result to the range [0, 0xFF].
+        :param vx: The "x" in Vx
+        :param byte: An 8-bit value
+        """
+        self.v_registers[vx] = (self.v_registers[vx] + byte) % Emulator.MOD_8_BIT
 
     def ld_v_v(self, vx: int, vy: int) -> None:
         self.v_registers[vx] = self.v_registers[vy]
@@ -150,23 +180,50 @@ class Emulator:
         self.v_registers[vx] ^= self.v_registers[vy]
 
     def add_v_v(self, vx: int, vy: int) -> None:
-        self.v_registers[vx] += self.v_registers[vy]  # TODO OVERFLOW
+        """
+        Add Vx and Vy together and store the result in Vx. Since
+        registers are only 8-bit, mod the result in range [0, 255]
+        :param vx: The "x" in Vx
+        :param vy: The "y" in Vy
+        """
+        self.v_registers[vx] = (self.v_registers[vx] + self.v_registers[vy]) % Emulator.MOD_8_BIT
 
     def sub_v_v(self, vx: int, vy: int) -> None:
+        """
+        TODO unit test
+        :param vx:
+        :param vy:
+        :return:
+        """
         self.v_registers[0xF] = 1 if self.v_registers[vx] > self.v_registers[vy] else 0
-        self.v_registers[vx] -= self.v_registers[vy]  # TODO UNDERFLOW
+        self.v_registers[vx] = (self.v_registers[vx] - self.v_registers[vy]) % Emulator.MOD_8_BIT
 
     def shr_v(self, vx: int) -> None:
+        """
+        TODO unit test
+        :param vx:
+        :return:
+        """
         self.v_registers[0xF] = self.v_registers[vx] & 0x1
-        self.v_registers[vx] >>= 1  # TODO UNDERFLOW
+        self.v_registers[vx] >>= 1
 
     def subn_v_v(self, vx: int, vy: int) -> None:
+        """
+        Set Vx = Vy - Vx, set VF = NOT borrow.
+        If Vy > Vx, then VF is set to 1, otherwise 0.
+        Then Vx is subtracted from Vy, and the results stored in Vx.
+        TODO unit test
+        """
         self.v_registers[0xF] = 1 if self.v_registers[vy] > self.v_registers[vx] else 0
-        self.v_registers[vx] = self.v_registers[vy] - self.v_registers[vx]  # TODO UNDERFLOW
+        self.v_registers[vx] = (self.v_registers[vy] - self.v_registers[vx]) % Emulator.MOD_8_BIT
 
     def shl_v(self, vx: int) -> None:
-        self.v_registers[0xF] = self.v_registers[vx] & 0x80
-        self.v_registers[vx] <<= 1  # TODO OVERFLOW
+        """
+        If Vx has a 1 in the significant place, set VF to 1, otherwise 0.
+        Bit-shift Vx left by 1. Mod the result to the range [0, 255].
+        """
+        self.v_registers[0xF] = (self.v_registers[vx] & 0x80) >> 7
+        self.v_registers[vx] = (self.v_registers[vx] << 1) % Emulator.MOD_8_BIT
 
     def sne_v_v(self, vx: int, vy: int) -> bool:
         if self.v_registers[vx] != self.v_registers[vy]:
@@ -183,7 +240,7 @@ class Emulator:
     def rnd_v_byte(self, vx: int, byte: int) -> None:
         self.v_registers[vx] = random.randint(0, 255) & byte
 
-    def drw(self, vx: int, vy: int, height: int) -> None:
+    def drw(self, vx: int, vy: int, height: int) -> None:  # TODO unit test
         for row in range(height):
             sprite = self.memory[self.i_register + row]
             for col in range(8):
@@ -199,17 +256,36 @@ class Emulator:
                     self.v_registers[0xF] = True  # collision
                 self.display[y][x] = current ^ sprite_pixel
 
-    def skp_v(self, vx: int):
-        pass
+    def skp_v(self, vx: int) -> bool:
+        """
+        Skip next instruction if key with code in Vx is pressed.
+        """
+        if self.v_registers[vx] in self.keys_pressed:
+            self.increment_program_counter(2)
+            return True
+        else:
+            return False
 
-    def sknp_v(self, vx: int):
-        pass
+    def sknp_v(self, vx: int):  # TODO unit test
+        if self.v_registers[vx] not in self.keys_pressed:
+            self.increment_program_counter(2)
+            return True
+        else:
+            return False
 
     def ld_v_dt(self, vx: int) -> None:
         self.v_registers[vx] = self.dt_register
 
     def ld_v_k(self, vx: int) -> None:
-        pass
+        """
+        Wait for a keypress. Store the next keypress in Vx.
+        Note: only sets a flag, does not actually block the
+        emulator from executing other commands.
+        :param vx:
+        :return:
+        """
+        self.wait_for_keypress = True
+        self.store_keypress_in_v = vx
 
     def ld_dt_v(self, vx: int) -> None:
         self.dt_register = self.v_registers[vx]
@@ -218,10 +294,15 @@ class Emulator:
         self.st_register = self.v_registers[vx]
 
     def add_i_v(self, vx: int) -> None:
-        self.i_register += self.v_registers[vx]  # TODO OVERFLOW
+        """
+        Add I and Vx together and store the result in I. Since
+        registers are only 8-bit, mod the result in range [0, 0xFF].
+        :param vx: The "x" in Vx
+        """
+        self.i_register = (self.i_register + self.v_registers[vx]) % Emulator.MOD_8_BIT
 
     def ld_f_v(self, vx: int) -> None:
-        pass
+        self.i_register = self.v_registers[vx] * Emulator.FONT_SIZE
 
     def ld_b_v(self, vx: int) -> None:
         self.memory[self.i_register] = self.v_registers[vx] // 100
@@ -235,6 +316,28 @@ class Emulator:
     def ld_v_i(self, vx: int) -> None:
         for i in range(0xF):
             self.v_registers[i] = self.memory[self.i_register + i]
+
+    def increment_program_counter(self, num_ops: int = 1) -> None:
+        self.program_counter += num_ops * 2  # Each opcode is 2 bytes
+
+    def key_down(self, keypress: str):
+        try:
+            code = int(keypress, 16)
+            self.keys_pressed.append(code)
+
+            if self.wait_for_keypress is True:
+                self.v_registers[self.store_keypress_in_v] = code
+                self.wait_for_keypress = False
+                self.store_keypress_in_v = None
+        except ValueError:
+            pass
+
+    def key_up(self, keypress: str):
+        try:
+            code = int(keypress, 16)
+            self.keys_pressed.remove(code)
+        except ValueError:
+            pass
 
     def __str__(self):
         value = '-' * 66 + '\n'

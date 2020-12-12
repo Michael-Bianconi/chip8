@@ -15,7 +15,7 @@ python3 assembler.py <source file> <destination file>
 * There is nothing stopping you from macro-ing a keyword (e.g. `I`), but things will break
 * You may declare labels and define-macros before or after using them
 * You may declare labels and define-macros multiple times. Only the bottom-most declarations will be used
-
+* You may only declare one label per line. If you want to declare multiple labels at the same place, put them on separate lines
 ## Disassembler
 
 ### Usage

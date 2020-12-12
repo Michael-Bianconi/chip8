@@ -1,10 +1,9 @@
 define  x               v0   ; Where to print sprite (X-axis)
 define  y               v1   ; Where to print sprite (Y-axis)
 define  sprite_index    v2   ; Current sprite
-define  sprite_size     v3
 define  sprite_width    0x8  ; Width of each sprite
 define  sprite_height   0x5  ; Height of each sprite
-define  num_sprites     0x10  ; 16 sprites
+define  num_sprites     0x10 ; 16 sprites
 define  fonts_start     0x0  ; Start of the font block in memory
 define  fonts_end       0x54 ; End of font block (exclusive)
 define  display_width   0x40 ; Width of display (64 pixels)
@@ -13,14 +12,13 @@ define  display_height  0x20 ; Height of display (32 pixels)
         ld      x,              0x0
         ld      y,              0x0
         ld      sprite_index,   fonts_start
-        ld      sprite_size,    0x5
 
 loop:
         sne     sprite_index,   num_sprites     ; If no more sprites,
         jp      end                             ; end
         drw     x, y, sprite_height             ; Else, draw the sprite
         add     sprite_index, 0x1               ; Set sprite_index to next sprite
-        add     I, sprite_size                  ; Move I to next sprite
+        ld      f, sprite_index                 ; Move I to next sprite
         add     x, sprite_width                 ; Else, go to next column
         se      x, display_width                ; End of line, go to next line
         jp      loop

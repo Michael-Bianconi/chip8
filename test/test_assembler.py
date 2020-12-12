@@ -1,14 +1,18 @@
 from unittest import TestCase
 
-from assembler import assemble
+from assembler.assembler import Assembler
 
 class AssemblerTest(TestCase):
 
     def assertAssembles(self, expected, line):
-        self.assertEqual(expected, assemble(line))
+        self.assertEqual(expected, Assembler.assemble_line(line))
 
     def assertNotAssembles(self, line):
-        self.assertIsNone(assemble(line))
+        try:
+            result = Assembler.assemble_line(line)
+        except:
+            result = None
+        self.assertIsNone(result)
 
     def test_assemble_add_i_v(self):
         self.assertAssembles(0xF41E, "ADD I, V4")
