@@ -1,0 +1,23 @@
+; FILE: hold_key.ch8
+; AUTHOR: Michael Bianconi
+; CREATED: December 12th, 2020
+; DESCRIPTION: Display button as long as it is pressed by the user
+
+define  pressed_key  v0                  ; Register to hold the pressed key
+define  x            v1                  ; X-coordinate on screen
+define  y            v2                  ; Y-coordinate on screen
+
+        LD      x, 0
+        LD      y, 0
+
+loop:
+        CLS                             ; Clear the screen
+        LD      pressed_key, K          ; Wait for a button press
+        LD      F, pressed_key          ; Load selected font
+        DRW     x, y, 0x5               ; Draw font to screen
+
+wait:
+        SKP     pressed_key             ; Do not jump if still pressed
+        JP      loop                    ; Go back to the top
+        JP      wait                    ; Keep waiting
+

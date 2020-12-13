@@ -22,3 +22,18 @@ python3 assembler.py <source file> <destination file>
 ```
 python3 disassembler.py <source file> <destination file>
 ```
+
+## Debugger
+The debugger allows the user step through their program, as well as view and
+alter registers during run-time. Commands may only be entered when the program
+is paused.
+
+#### Commands:
+    RUN                           ; Start the program while it is paused
+    EXIT                          ; Close the program
+    BREAKPOINT <address>          ; Pause the program when PC = <address>
+    REGISTERS                     ; View register contents
+    SET <register> <int>          ; Set a register to the value
+    STACK                         ; View the stack
+    MEMORY[<address>] * <n>       ; View <n> bytes of data at memory[<address>]
+

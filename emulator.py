@@ -106,9 +106,8 @@ class Emulator:
                 # Jumps are handled by their respective instructions
                 if not jump:
                     self.increment_program_counter()
+                    break
 
-    def cls(self) -> None:
-        self.display = Emulator.empty_display()
 
     def ret(self) -> bool:  # TODO unit test
         self.program_counter = self.stack[self.stack_pointer]
@@ -132,10 +131,7 @@ class Emulator:
         return True
 
     def call_address(self, address: int) -> bool:  # TODO unit test
-        self.stack_pointer = (self.stack_pointer + 1) % Emulator.MOD_4_BIT
-        self.stack[self.stack_pointer] = self.program_counter
-        self.program_counter = address
-        return True
+
 
     def se_v_byte(self, vx: int, byte: int) -> bool:  # TODO unit test
         if self.v_registers[vx] == byte:
@@ -323,16 +319,19 @@ class Emulator:
     def key_down(self, keypress: str):
         try:
             code = int(keypress, 16)
-            self.keys_pressed.append(code)
+            if not code in self.keys_pressed:
+                self.keys_pressed.append(code)
 
-            if self.wait_for_keypress is True:
-                self.v_registers[self.store_keypress_in_v] = code
-                self.wait_for_keypress = False
-                self.store_keypress_in_v = None
+                if self.wait_for_keypress is True:
+                    self.v_registers[self.store_keypress_in_v] = code
+                    self.wait_for_keypress = False
+                    self.store_keypress_in_v = None
+
         except ValueError:
             pass
 
     def key_up(self, keypress: str):
+        print('keyup')
         try:
             code = int(keypress, 16)
             self.keys_pressed.remove(code)

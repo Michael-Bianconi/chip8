@@ -3,6 +3,9 @@ from typing import List
 
 
 class Display(tk.Canvas):
+    """
+    Canvas-object for pixel drawing.
+    """
 
     PIXEL_COLOR = 'white'
     BG_COLOR = 'black'
@@ -15,8 +18,8 @@ class Display(tk.Canvas):
         for pixel in pixels:
             self.set_pixel(*pixel)
 
-    def set_pixel(self, x: bool, y: bool, turn_on: bool) -> None:
+    def set_pixel(self, x: bool, y: bool, state: bool) -> None:
         upper_left = x * self.pixel_width, y * self.pixel_height
         bottom_right = upper_left[0] + self.pixel_width, upper_left[1] + self.pixel_height
-        fill = Display.PIXEL_COLOR if turn_on else Display.BG_COLOR
+        fill = Display.PIXEL_COLOR if state else Display.BG_COLOR
         super().create_rectangle(*upper_left, *bottom_right, fill=fill)

@@ -1,8 +1,9 @@
 import sys
 import tkinter as tk
-from graphical.display import Display
-from emulator import Emulator
+
 from disassembler import mnemonic
+from emulator import Emulator
+from ui.display import Display
 
 
 class InfoGrid(tk.Frame):
@@ -101,23 +102,41 @@ pps = play_pause_step_frame(window)
 pps.pack(side='top')
 display.pack(side='left')
 info_grid.pack(side='left')
+refresh_rate = 100  # milliseconds TODO command line argument
+keys_to_release = set()
 
 with open(sys.argv[1], 'rb') as source:
     emulator = Emulator(source)
 
-def foo():
-    emulator.next()
-    display.set_pixels(emulator.pixels_to_update)
-    info_grid.set_register('v0', emulator.v_registers[0])
-    info_grid.set_register('v1', emulator.v_registers[1])
-    info_grid.set_register('v2', emulator.v_registers[2])
+
+def refresh():
+    global keys_to_release
+
+    if not emulator.wait_for_keypress:
+        emulator.next()
+        display.set_pixels(emulator.pixels_to_update)
+    for i in range(0x10):
+        info_grid.set_register('v' + hex(i)[2:].upper(), emulator.v_registers[i])
     info_grid.set_register('I', emulator.i_register)
     info_grid.set_register('PC', emulator.program_counter)
     opcode = int.from_bytes(emulator.memory[emulator.program_counter:emulator.program_counter + 2], 'big')
     info_grid.set_op(mnemonic(opcode))
-    window.after(1, foo)
 
-foo()
-while True:
-    window.update_idletasks()
-    window.update()
+    for k in keys_to_release:
+        emulator.key_up(k)
+    keys_to_release.clear()
+
+    window.after(refresh_rate, refresh)
+
+
+def on_keypress(event):
+    global keys_to_release
+
+    if event.char not in keys_to_release:
+        emulator.key_down(event.char)
+
+
+window.bind_all('<KeyPress>', on_keypress)
+window.bind_all('<KeyRelease>', lambda event: keys_to_release.add(event.char))
+refresh()
+window.mainloop()

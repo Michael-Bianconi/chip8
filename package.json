@@ -1,0 +1,13 @@
+{
+  "name": "chip8",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^26.6.3"
+  },
+  "dependencies": {
+    "@jest/globals": "latest"
+  }
+}

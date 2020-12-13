@@ -71,7 +71,7 @@ class TestEmulator(TestCase):
         emulator.v_registers[1] = 0x12  # 00010010
 
         emulator.or_v_v(0, 1)
-        self.assertEqual(0xB7, emulator.v_registers[0])
+        self.assertEqual(0xB7, emulator.v_registers[0])  # 10110111
 
     def test_shl_v(self):
         emulator = Emulator(source=None)
@@ -79,11 +79,11 @@ class TestEmulator(TestCase):
 
         emulator.shl_v(0)
         self.assertEqual(1, emulator.v_registers[0xF])
-        self.assertEqual(0x4A, emulator.v_registers[0])
+        self.assertEqual(0x4A, emulator.v_registers[0])  # 01001010
 
         emulator.shl_v(0)
         self.assertEqual(0, emulator.v_registers[0xF])
-        self.assertEqual(0x94, emulator.v_registers[0])
+        self.assertEqual(0x94, emulator.v_registers[0])  # 10010100
 
     def test_skp_v(self):
         emulator = Emulator(source=None)
