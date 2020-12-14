@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chip-8</title>
+    <script src="/js/emulator.js"></script>
+    <script src="/js/ui/pixelDisplay.js"></script>
+    <script src="/js/ui/terminal.js"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <input id="BinaryFileInput" type="file">
+    <canvas id="PixelDisplay"></canvas>
+    <div id="Terminal"></div>
+    <script>
+        let fileInput = document.getElementById("BinaryFileInput");
+        let canvas = document.getElementById("PixelDisplay");
+        let terminal = new Terminal(document.getElementById("Terminal"));
+        canvas.width = 640;
+        canvas.height = 320;
+        let emulator = new Emulator();
+        let display = new PixelDisplay(canvas);
+        console.log(display);
+        emulator.read_on_change(fileInput);
+        display.setPixel(4, 8, true);
+
+    </script>
+</body>
+</html>

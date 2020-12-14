@@ -1,4 +1,4 @@
-const Emulator = require('../build/emulator');
+const Emulator = require('../build/js/emulator');
 
 test('SE Vx Byte', () => {
     let e = new Emulator();

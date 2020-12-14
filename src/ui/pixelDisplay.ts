@@ -2,17 +2,18 @@ class PixelDisplay {
 
     private static readonly ROW_COUNT = 32;
     private static readonly COLUMN_COUNT = 64;
-    private static readonly FOREGROUND_COLOR = '0xFFFFFF';
-    private static readonly BACKGROUND_COLOR = '0x000000';
+    private static readonly FOREGROUND_COLOR = 'red';
+    private static readonly BACKGROUND_COLOR = 'black';
 
-    private readonly canvas: HTMLCanvasElement;
-    private readonly ctx: CanvasRenderingContext2D;
+    public readonly canvas: HTMLCanvasElement;
+    public readonly ctx: CanvasRenderingContext2D;
     private readonly pixel_width: number;
     private readonly pixel_height: number;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
-        this.ctx = <CanvasRenderingContext2D> canvas.getContext('2D');
+        this.ctx = <CanvasRenderingContext2D> canvas.getContext('2d');
+        console.log(this);
         this.pixel_width = this.canvas.width / PixelDisplay.COLUMN_COUNT;
         this.pixel_height = this.canvas.height / PixelDisplay.ROW_COUNT;
         this.clear();
