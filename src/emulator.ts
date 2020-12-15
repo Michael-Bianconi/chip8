@@ -67,23 +67,23 @@ class Emulator {
         [0xF065, 0xF0FF, (e, op) => e.ld_v_i((op & 0x0F00) >> 8)],
     ];
 
-    public v_registers: number[] = Array(Emulator.V_REGISTER_COUNT).fill(0);
-    public i_register: number = 0;
-    public dt_register: number = 0;
-    public st_register: number = 0;
-    public stack_pointer: number = 0;
+    public vRegisters: number[] = Array(Emulator.V_REGISTER_COUNT).fill(0);
+    public iRegister: number = 0;
+    public dtRegister: number = 0;
+    public stRegister: number = 0;
+    public stackPointer: number = 0;
     public memory: number[] = Array(Emulator.MEMORY_SIZE).fill(0);
-    public program_counter: number = 0x200;
+    public programCounter: number = 0x200;
     public stack: number[] = Array(Emulator.STACK_SIZE).fill(0);
     public display: boolean[][] = Emulator.empty_display();
-    public unflushed_pixels: [number, number, boolean][] = [];
+    public unflushedPixels: [number, number, boolean][] = [];
     public wait_for_keypress: boolean = false;
     public store_keypress_in: number = null;
     public paused: boolean = false;
     public breakpoints: number[] = [];
 
     next(): void {
-        if (!this.breakpoints.includes(this.program_counter)) {
+        if (!this.breakpoints.includes(this.programCounter)) {
             let opcode = this.get_instruction();
             for (let i = 0; i < Emulator.INSTRUCTION_TABLE.length; i++) {
                 let [pattern, mask, operation] = Emulator.INSTRUCTION_TABLE[i];
@@ -101,7 +101,7 @@ class Emulator {
             for (let x = 0; x < this.display[y].length; x++) {
                 if (this.display[y][x]) {
                     this.display[y][x] = false;
-                    this.unflushed_pixels.push([x, y, false]);
+                    this.unflushedPixels.push([x, y, false]);
                 }
             }
         }
@@ -110,8 +110,8 @@ class Emulator {
 
     // TODO Unit test
     ret(): void {
-        this.program_counter = this.stack[this.stack_pointer];
-        this.stack_pointer = (this.stack_pointer - 1) % Emulator.MOD_4_BIT;
+        this.programCounter = this.stack[this.stackPointer];
+        this.stackPointer = (this.stackPointer - 1) % Emulator.MOD_4_BIT;
     }
 
     // TODO Unit test
@@ -122,127 +122,127 @@ class Emulator {
 
     // TODO Unit test
     jp_addr(address: number) {
-        this.program_counter = address;
+        this.programCounter = address;
     }
 
     // TODO Unit test
     call_addr(address: number): void {
-        this.stack_pointer = (this.stack_pointer + 1) % Emulator.MOD_4_BIT;
-        this.stack[this.stack_pointer] = this.program_counter;
-        this.program_counter = address;
+        this.stackPointer = (this.stackPointer + 1) % Emulator.MOD_4_BIT;
+        this.stack[this.stackPointer] = this.programCounter;
+        this.programCounter = address;
     }
 
     se_v_byte(vx: number, byte: number): void {
-        let jump = this.v_registers[vx] === byte;
+        let jump = this.vRegisters[vx] === byte;
         this.increment_program_counter(jump ? 2 : 1);
     }
 
     sne_v_byte(vx: number, byte: number): void {
-        let jump = this.v_registers[vx] !== byte;
+        let jump = this.vRegisters[vx] !== byte;
         this.increment_program_counter(jump ? 2 : 1);
     }
 
     se_v_v(vx: number, vy: number): void {
-        let jump = this.v_registers[vx] === this.v_registers[vy];
+        let jump = this.vRegisters[vx] === this.vRegisters[vy];
         this.increment_program_counter(jump ? 2 : 1);
     }
 
     ld_v_byte(vx: number, byte: number): void {
-        this.v_registers[vx] = byte;
+        this.vRegisters[vx] = byte;
         this.increment_program_counter();
     }
 
     add_v_byte(vx: number, byte: number): void {
-        this.v_registers[vx] = (this.v_registers[vx] + byte) % Emulator.MOD_8_BIT;
+        this.vRegisters[vx] = (this.vRegisters[vx] + byte) % Emulator.MOD_8_BIT;
         this.increment_program_counter()
     }
 
     ld_v_v(vx: number, vy: number): void {
-        this.v_registers[vx] = this.v_registers[vy];
+        this.vRegisters[vx] = this.vRegisters[vy];
         this.increment_program_counter();
     }
 
     or_v_v(vx: number, vy: number): void {
-        this.v_registers[vx] |= this.v_registers[vy];
+        this.vRegisters[vx] |= this.vRegisters[vy];
         this.increment_program_counter();
     }
 
     and_v_v(vx: number, vy: number): void {
-        this.v_registers[vx] &= this.v_registers[vy];
+        this.vRegisters[vx] &= this.vRegisters[vy];
         this.increment_program_counter();
     }
 
     xor_v_v(vx: number, vy: number): void {
-        this.v_registers[vx] ^= this.v_registers[vy];
+        this.vRegisters[vx] ^= this.vRegisters[vy];
         this.increment_program_counter();
     }
 
     add_v_v(vx: number, vy: number): void {
-        this.v_registers[vx] = (this.v_registers[vx] + this.v_registers[vy]) % Emulator.MOD_8_BIT;
+        this.vRegisters[vx] = (this.vRegisters[vx] + this.vRegisters[vy]) % Emulator.MOD_8_BIT;
         this.increment_program_counter();
     }
 
     sub_v_v(vx: number, vy: number): void {
-        this.v_registers[0xF] = this.v_registers[vx] > this.v_registers[vy] ? 1 : 0;
-        this.v_registers[vx] = ((this.v_registers[vx] - this.v_registers[vy]) >>> 0) % Emulator.MOD_8_BIT;
+        this.vRegisters[0xF] = this.vRegisters[vx] > this.vRegisters[vy] ? 1 : 0;
+        this.vRegisters[vx] = ((this.vRegisters[vx] - this.vRegisters[vy]) >>> 0) % Emulator.MOD_8_BIT;
         this.increment_program_counter();
     }
 
     shr_v(vx: number): void {
-        this.v_registers[0xF] = this.v_registers[vx] & 0x1;
-        this.v_registers[vx] >>= 1;
+        this.vRegisters[0xF] = this.vRegisters[vx] & 0x1;
+        this.vRegisters[vx] >>= 1;
         this.increment_program_counter();
     }
 
     subn_v_v(vx: number, vy: number): void {
-        this.v_registers[0xF] = this.v_registers[vy] > this.v_registers[vx] ? 1 : 0;
-        this.v_registers[vx] = ((this.v_registers[vy] - this.v_registers[vx]) >>> 0) % Emulator.MOD_8_BIT;
+        this.vRegisters[0xF] = this.vRegisters[vy] > this.vRegisters[vx] ? 1 : 0;
+        this.vRegisters[vx] = ((this.vRegisters[vy] - this.vRegisters[vx]) >>> 0) % Emulator.MOD_8_BIT;
         this.increment_program_counter();
     }
 
     shl_v(vx: number): void {
-        this.v_registers[0xF] = (this.v_registers[vx] & 0x80) >> 7;
-        this.v_registers[vx] = (this.v_registers[vx] << 1) % Emulator.MOD_8_BIT;
+        this.vRegisters[0xF] = (this.vRegisters[vx] & 0x80) >> 7;
+        this.vRegisters[vx] = (this.vRegisters[vx] << 1) % Emulator.MOD_8_BIT;
         this.increment_program_counter();
     }
 
     // TODO Unit test
     sne_v_v(vx: number, vy: number): void {
-        let jump = this.v_registers[vx] !== this.v_registers[vy];
+        let jump = this.vRegisters[vx] !== this.vRegisters[vy];
         this.increment_program_counter(jump ? 2 : 1);
     }
 
     // TODO Unit test
     ld_i_addr(addr: number): void {
-        this.i_register = addr;
+        this.iRegister = addr;
         this.increment_program_counter();
     }
 
     // TODO Unit test
     jp_v0_addr(addr: number): void {
-        this.program_counter = this.v_registers[0] + addr;
+        this.programCounter = this.vRegisters[0] + addr;
         this.increment_program_counter();
     }
 
     // TODO Unit test
     rnd_v_byte(vx: number, byte: number): void {
-        this.v_registers[vx] = Math.floor(Math.random() * Math.floor(0x100)) & byte;
+        this.vRegisters[vx] = Math.floor(Math.random() * Math.floor(0x100)) & byte;
         this.increment_program_counter();
     }
 
     // TODO Unit test
     drw(vx: number, vy: number, height: number): void {
         for (let row = 0; row < height; row++) {
-            let sprite: number = this.memory[this.i_register + row];
+            let sprite: number = this.memory[this.iRegister + row];
             for (let col = 0; col < 8; col++) {
-                let x: number = (this.v_registers[vx] + col) % Emulator.DISPLAY_WIDTH;
-                let y: number = (this.v_registers[vy] + row) % Emulator.DISPLAY_HEIGHT;
+                let x: number = (this.vRegisters[vx] + col) % Emulator.DISPLAY_WIDTH;
+                let y: number = (this.vRegisters[vy] + row) % Emulator.DISPLAY_HEIGHT;
                 let pixel: boolean = (sprite & (0x80 >> col)) > 0;
                 let current: boolean = this.display[y][x];
                 if (current !== pixel) {
-                    this.unflushed_pixels.push([x, y, pixel]);
+                    this.unflushedPixels.push([x, y, pixel]);
                 } else if (current && pixel) {
-                    this.v_registers[0xF] = 1;  // collision
+                    this.vRegisters[0xF] = 1;  // collision
                 }
                 this.display[y][x] = current !== pixel;
             }
@@ -264,7 +264,7 @@ class Emulator {
 
     // TODO unit test
     ld_v_dt(vx: number): void {
-        this.v_registers[vx] = this.dt_register;
+        this.vRegisters[vx] = this.dtRegister;
         this.increment_program_counter();
     }
 
@@ -276,40 +276,40 @@ class Emulator {
 
     // TODO unit test
     ld_dt_v(vx: number): void {
-        this.dt_register = this.v_registers[vx];
+        this.dtRegister = this.vRegisters[vx];
         this.increment_program_counter();
     }
 
     // TODO unit test
     ld_st_v(vx: number): void {
-        this.st_register = this.v_registers[vx];
+        this.stRegister = this.vRegisters[vx];
         this.increment_program_counter();
     }
 
     // TODO unit test
     add_i_v(vx: number): void {
-        this.i_register = (this.i_register + this.v_registers[vx]) % Emulator.MOD_8_BIT;
+        this.iRegister = (this.iRegister + this.vRegisters[vx]) % Emulator.MOD_8_BIT;
         this.increment_program_counter();
     }
 
     // TODO unit test
     ld_f_v(vx: number): void {
-        this.i_register = this.v_registers[vx] * Emulator.FONT_SIZE;
+        this.iRegister = this.vRegisters[vx] * Emulator.FONT_SIZE;
         this.increment_program_counter();
     }
 
     // TODO unit test
     ld_b_v(vx: number): void {
-        this.memory[this.i_register] = this.v_registers[vx]; // 100
-        this.memory[this.i_register + 1] = this.v_registers[vx] % 100; // 10
-        this.memory[this.i_register + 2] = this.v_registers[vx] % 10;
+        this.memory[this.iRegister] = this.vRegisters[vx]; // 100
+        this.memory[this.iRegister + 1] = this.vRegisters[vx] % 100; // 10
+        this.memory[this.iRegister + 2] = this.vRegisters[vx] % 10;
         this.increment_program_counter();
     }
 
     // TODO unit test
     ld_i_v(vx: number): void {
         for (let i = 0; i <= vx; i++) {
-            this.memory[this.i_register + i] = this.v_registers[i];
+            this.memory[this.iRegister + i] = this.vRegisters[i];
         }
         this.increment_program_counter();
     }
@@ -317,17 +317,17 @@ class Emulator {
     // TODO unit test
     ld_v_i(vx: number): void {
         for (let i = 0; i <= vx; i++) {
-            this.v_registers[i] = this.memory[this.i_register + i];
+            this.vRegisters[i] = this.memory[this.iRegister + i];
         }
         this.increment_program_counter();
     }
 
     increment_program_counter(n: number = 1) {
-        this.program_counter += n * 2;
+        this.programCounter += n * 2;
     }
 
     get_instruction() {
-        let [upper, lower] = this.memory.slice(this.program_counter, this.program_counter + 2);
+        let [upper, lower] = this.memory.slice(this.programCounter, this.programCounter + 2);
         return (upper << 8) | lower;
     }
 
@@ -350,17 +350,17 @@ class Emulator {
         register = register.toUpperCase();
         if (register.startsWith('V')) {
             let index = parseInt(register[1], 16);
-            this.v_registers[index] = value % Emulator.MOD_8_BIT;
+            this.vRegisters[index] = value % Emulator.MOD_8_BIT;
         } else if (register === 'I') {
-            this.i_register = value % Emulator.MOD_16_BIT;
+            this.iRegister = value % Emulator.MOD_16_BIT;
         } else if (register === 'DT') {
-            this.dt_register = value % Emulator.MOD_8_BIT;
+            this.dtRegister = value % Emulator.MOD_8_BIT;
         } else if (register === 'ST') {
-            this.st_register = value % Emulator.MOD_8_BIT;
+            this.stRegister = value % Emulator.MOD_8_BIT;
         } else if (register === 'SP') {
-            this.stack_pointer = value % Emulator.MOD_8_BIT;
+            this.stackPointer = value % Emulator.MOD_8_BIT;
         } else if (register === 'PC') {
-            this.program_counter = value % Emulator.MOD_12_BIT;
+            this.programCounter = value % Emulator.MOD_12_BIT;
         } else {
             return false;
         }
@@ -404,7 +404,7 @@ class Emulator {
             reader.onload = e => {
                 let array = new Uint8Array(<ArrayBuffer> e.target.result);
                 for (let i = 0; i < array.length; i++) {
-                    emulator.memory[emulator.program_counter + i] = array[i];
+                    emulator.memory[emulator.programCounter + i] = array[i];
                 }
             };
             reader.readAsArrayBuffer(this.files[0]);

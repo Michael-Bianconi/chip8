@@ -13,7 +13,6 @@ class PixelDisplay {
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.ctx = <CanvasRenderingContext2D> canvas.getContext('2d');
-        console.log(this);
         this.pixel_width = this.canvas.width / PixelDisplay.COLUMN_COUNT;
         this.pixel_height = this.canvas.height / PixelDisplay.ROW_COUNT;
         this.clear();

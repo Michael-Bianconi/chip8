@@ -5,22 +5,29 @@
     <title>Chip-8</title>
     <script src="/js/emulator.js"></script>
     <script src="/js/ui/pixelDisplay.js"></script>
-    <script src="/js/ui/terminal.js"></script>
+    <script src="/js/ui/debugger.js"></script>
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <input id="BinaryFileInput" type="file">
-    <canvas id="PixelDisplay"></canvas>
-    <div id="Terminal"></div>
+    <div style="float: left;">
+        <canvas id="PixelDisplay"></canvas>
+    </div>
+    <div>
+        <input type="button" class="fileInputButton" value="Upload binary (.bin)" onclick="document.getElementById('BinaryFileInput').click();" />
+        <input type="button" class="fileInputButton" value="Upload assembly (.asm)" onclick="document.getElementById('AssemblyFileInput').click();" />
+        <div id="Debugger" class="debuggerContainer"></div>
+    </div>
+    <input type="file" id="BinaryFileInput" style="display: none;" />
+    <input type="file" id="AssemblyFileInput" style="display: none;" />
     <script>
         let fileInput = document.getElementById("BinaryFileInput");
         let canvas = document.getElementById("PixelDisplay");
-        let terminal = new Terminal(document.getElementById("Terminal"));
+        let debuggerContainer = document.getElementById("Debugger");
         canvas.width = 640;
         canvas.height = 320;
         let emulator = new Emulator();
         let display = new PixelDisplay(canvas);
-        console.log(display);
+        let debugg = new Debugger(debuggerContainer, emulator);
         emulator.read_on_change(fileInput);
         display.setPixel(4, 8, true);
 
