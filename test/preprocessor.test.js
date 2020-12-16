@@ -29,3 +29,33 @@ test( 'PROCESS LABELS INVALID', () => {
    expect(p.processLabel('1LABEL:')).toBe('1LABEL:');
    expect(p.processLabel('LABEL^:')).toBe('LABEL^:');
 });
+
+test( 'PROCESS DEFINE', () => {
+   let p = new Preprocessor();
+   expect(p.processDefine('DEFINE MYDEFINE V0')).toBe(true);
+   expect(p.labels['MYDEFINE']).toBe('V0');
+   expect(p.processDefine('ADD V0, V1')).toBe(false);
+   expect(p.processDefine('DEFINE _MYDEFINE V0')).toBe(true);
+   expect(p.labels['_MYDEFINE']).toBe('V0');
+   expect(p.processDefine('DEFINE')).toBe(false);
+   expect(p.processDefine('DEFINE MYKEY')).toBe(false);
+});
+
+test('SPLIT MNEMONIC', () => {
+   expect(Preprocessor.splitMnemonic('ADD V0, V1')).toStrictEqual(['ADD', ['V0', 'V1']]);
+   expect(Preprocessor.splitMnemonic('ADD   V0  , V1')).toStrictEqual(['ADD', ['V0', 'V1']]);
+   expect(Preprocessor.splitMnemonic('ADD V0,V1')).toStrictEqual(['ADD', ['V0', 'V1']]);
+   expect(Preprocessor.splitMnemonic('ADD V0, V1, V2')).toStrictEqual(['ADD', ['V0', 'V1', 'V2']]);
+   expect(Preprocessor.splitMnemonic('ADD V0')).toStrictEqual(['ADD', ['V0']]);
+   expect(Preprocessor.splitMnemonic('ADD')).toStrictEqual(['ADD', []]);
+});
+
+test('REPLACE LABELS', () => {
+   let p = new Preprocessor();
+   p.processLabel('LABEL1:');
+   p.processDefine('DEFINE LABEL2 VF');
+   expect(p.replaceLabels('ADD LABEL1, V0')).toBe('ADD 0X200, V0');
+   expect(p.replaceLabels('ADD LABEL1, LABEL2')).toBe('ADD 0X200, VF');
+   expect(p.replaceLabels('ADD LABEL1')).toBe('ADD 0X200');
+   expect(p.replaceLabels('ADD')).toBe('ADD');
+});
