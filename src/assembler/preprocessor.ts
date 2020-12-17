@@ -15,7 +15,8 @@ class Preprocessor {
     firstPass(raw: string[]): string[] {
         let result: string[] = [];
         for (let i = 0; i < raw.length; i++) {
-            let line = raw[i].trim().toUpperCase().replace(/\s+/, ' ');
+            let line = raw[i].trim().toUpperCase();
+            line = line.replace(/\s+/, ' ').replace('#', '0X');
             line = this.processLabel(Preprocessor.removeComment(line));
             if (line !== '') {
                 if (!this.processDefine(line)) {
@@ -78,7 +79,7 @@ class Preprocessor {
                 operands[o] = this.labels[operands[o]];
             }
         }
-        return (opcode + ' ' + operands.join(', ')).trim();
+        return (opcode + ' ' + operands.join(',')).trim();
     }
 
     /**

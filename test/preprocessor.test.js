@@ -54,8 +54,8 @@ test('REPLACE LABELS', () => {
    let p = new Preprocessor();
    p.processLabel('LABEL1:');
    p.processDefine('DEFINE LABEL2 VF');
-   expect(p.replaceLabels('ADD LABEL1, V0')).toBe('ADD 0X200, V0');
-   expect(p.replaceLabels('ADD LABEL1, LABEL2')).toBe('ADD 0X200, VF');
+   expect(p.replaceLabels('ADD LABEL1, V0')).toBe('ADD 0X200,V0');
+   expect(p.replaceLabels('ADD LABEL1, LABEL2')).toBe('ADD 0X200,VF');
    expect(p.replaceLabels('ADD LABEL1')).toBe('ADD 0X200');
    expect(p.replaceLabels('ADD')).toBe('ADD');
 });
